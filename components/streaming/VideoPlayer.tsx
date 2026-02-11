@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { useMemo, useState, useRef } from 'react'
+import { Loader2, AlertCircle, RefreshCw, Maximize } from 'lucide-react'
 
 interface VideoPlayerProps {
   contentType: 'movie' | 'tv'
@@ -67,6 +67,21 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleFullscreen = async () => {
+    if (!containerRef.current) return
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch (err) {
+      console.error('Fullscreen request failed:', err)
+    }
+  }
 
   // Build embed URL directly - no API call needed
   const embedUrl = useMemo(() => {
@@ -82,46 +97,62 @@ export function VideoPlayer({
   }, [contentType, id, season, episode, dsLang, autoplay, autonext])
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl shadow-2xl shadow-black/50">
-      {loading && (
-        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 pointer-events-none">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
-            <p className="text-slate-400">Loading player...</p>
+    <div 
+      ref={containerRef}
+      className="relative w-full aspect-video bg-black shadow-2xl shadow-black/50" 
+      style={{ borderRadius: '0.75rem' }}
+    >
+      <div className="absolute inset-0 rounded-xl overflow-hidden">
+        {loading && (
+          <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 pointer-events-none">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+              <p className="text-slate-400">Loading player...</p>
+            </div>
           </div>
-        </div>
-      )}
-      
-      {error && (
-        <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-10 border border-red-500/30 rounded-xl">
-          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-          <p className="text-red-400 font-semibold mb-2">Playback Error</p>
-          <p className="text-slate-400 text-sm mb-6 text-center max-w-md px-4">
-            Failed to load video player
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Retry
-          </button>
-        </div>
-      )}
+        )}
+        
+        {error && (
+          <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-10 border border-red-500/30 rounded-xl">
+            <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+            <p className="text-red-400 font-semibold mb-2">Playback Error</p>
+            <p className="text-slate-400 text-sm mb-6 text-center max-w-md px-4">
+              Failed to load video player
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+          </div>
+        )}
 
-      <iframe
-        src={embedUrl}
-        allowFullScreen
-        className="w-full h-full border-0 rounded-xl"
-        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-        title={title || 'Video Player'}
-        referrerPolicy="origin"
-        onLoad={() => setLoading(false)}
-        onError={() => {
-          setLoading(false)
-          setError(true)
-        }}
-      />
+        <iframe
+          src={embedUrl}
+          allowFullScreen
+          className="w-full h-full border-0"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          title={title || 'Video Player'}
+          referrerPolicy="origin"
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setLoading(false)
+            setError(true)
+          }}
+        />
+
+        {/* Custom Fullscreen Button */}
+        <button
+          onClick={handleFullscreen}
+          className="absolute top-4 right-4 z-20 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg transition-all hover:scale-110"
+          title="Toggle fullscreen"
+          aria-label="Toggle fullscreen"
+        >
+          <Maximize className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   )
 }
