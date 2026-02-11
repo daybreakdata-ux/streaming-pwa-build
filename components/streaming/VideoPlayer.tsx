@@ -82,9 +82,9 @@ export function VideoPlayer({
   }, [contentType, id, season, episode, dsLang, autoplay, autonext])
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl shadow-black/50">
+    <div className="relative w-full aspect-video bg-black rounded-xl shadow-2xl shadow-black/50">
       {loading && (
-        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10">
+        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 pointer-events-none">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
             <p className="text-slate-400">Loading player...</p>
@@ -112,7 +112,7 @@ export function VideoPlayer({
       <iframe
         src={embedUrl}
         allowFullScreen
-        className="w-full h-full border-0"
+        className="w-full h-full border-0 rounded-xl"
         allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         title={title || 'Video Player'}
         referrerPolicy="origin"
