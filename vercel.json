@@ -1,9 +1,6 @@
 {
   "name": "streaming-pwa-build",
   "version": 2,
-  "env": {
-    "TMDB_API_KEY": "@tmdb_api_key"
-  },
   "buildCommand": "pnpm build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install --frozen-lockfile",
