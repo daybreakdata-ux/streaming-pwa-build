@@ -2,9 +2,7 @@
   "name": "streaming-pwa-build",
   "version": 2,
   "env": {
-    "TMDB_API_KEY": "@tmdb_api_key",
-    "VIDSRC_BACKEND_URL": "@vidsrc_backend_url",
-    "VIDSRC_API_KEY": "@vidsrc_api_key"
+    "TMDB_API_KEY": "@tmdb_api_key"
   },
   "buildCommand": "pnpm build",
   "devCommand": "pnpm dev",

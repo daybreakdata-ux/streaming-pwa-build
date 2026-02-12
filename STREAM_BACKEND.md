@@ -1,15 +1,24 @@
 # Stream Extraction Backend
 
-This backend API extracts direct stream URLs from embedded video players and converts embedded streams into direct playback URLs.
+Fully integrated stream backend API that extracts direct stream URLs from embedded video players and converts embedded streams into direct playback URLs. All functionality is built into the Next.js application with no external backend dependencies.
 
-## Production Deployment
+## Architecture Overview
 
-**URL**: https://streamhub.daybreakdev.com
+The streaming backend is fully self-contained within the application:
 
-This is deployed on Vercel and uses:
+- **Next.js API Routes**: Handle all stream extraction logic (`/api/stream`)
 - **TMDB API**: Provides content metadata and IDs
-- **VidSrc API**: Fetches embedded stream URLs from sources
-- **Stream Backend**: Converts embedded iframes into direct playable streams
+- **VidSrc Direct Integration**: Fetches and parses embedded stream URLs directly from vidsrc.cc and vidsrc.xyz
+- **Stream Extraction**: Runs on the server-side, converting embedded iframes into direct playable streams
+
+## Deployment
+
+**Production URL**: https://streamhub.daybreakdev.com
+
+Deployed on Vercel with:
+- Server-side stream extraction (Node.js runtime)
+- Direct VidSrc integration (no proxy backend needed)
+- Cached stream responses
 
 ## Features
 
@@ -182,51 +191,68 @@ Look for console output like:
 ## Architecture
 
 ```
-User Request
+User Request (VideoPlayer Component)
+    ↓
+/api/stream endpoint (Next.js API Route)
+    ↓
+┌──────────────────────────────────────────┐
+│ Build VidSrc Embed URL from TMDB ID      │
+│ - Movies: vidsrc.cc/embed/movie/{id}     │
+│ - TV: vidsrc.cc/embed/tv/{id}/{s}/{e}    │
+└──────────────────────────────────────────┘
+    ↓
+┌──────────────────────────────────────────┐
+│ Fetch & Parse Embed Page (Cheerio)       │
+│ - Extract iframe sources                 │
+│ - Extract video source tags              │
+│ - Search script content for m3u8 URLs    │
+│ - Check data attributes                  │
+└──────────────────────────────────────────┘
+    ↓
+┌──────────────────────────────────────────┐
+│ Resolve Iframe Chains                    │
+│ - Follow nested iframes (max 3 levels)   │
+│ - Extract final stream URL               │
+└──────────────────────────────────────────┘
+    ↓
+┌──────────────────────────────────────────┐
+│ Prioritize Streams                       │
+│ 1. HLS (.m3u8) - best for video         │
+│ 2. Direct URLs - non-iframe sources     │
+│ 3. Embed fallback - original iframe     │
+└──────────────────────────────────────────┘
+    ↓
+Return JSON Response with Stream Data
     ↓
 VideoPlayer Component
     ↓
-/api/stream endpoint
-    ↓
-┌─────────────────────────┐
-│ Fetch Embed Page        │
-│ Parse HTML (Cheerio)    │
-└─────────────────────────┘
-    ↓
-┌─────────────────────────┐
-│ Extract Sources:        │
-│ - iframes              │
-│ - video tags           │
-│ - script content       │
-│ - data attributes      │
-└─────────────────────────┘
-    ↓
-┌─────────────────────────┐
-│ Resolve Iframe Chains   │
-│ (up to 3 levels)       │
-└─────────────────────────┘
-    ↓
-┌─────────────────────────┐
-│ Prioritize Streams:     │
-│ 1. HLS (.m3u8)         │
-│ 2. Direct URLs         │
-│ 3. Embed fallback      │
-└─────────────────────────┘
-    ↓
-Return JSON Response
-    ↓
-VideoPlayer renders
+Render HTML5 <video> or <iframe>
 ```
+
+## Integrated API Routes
+
+All API routes are part of the main application:
+
+### Content APIs
+
+- **GET `/api/browse`** - Browse movies/TV by category (TMDB)
+- **GET `/api/search`** - Search for content (TMDB)
+- **GET `/api/details/[type]/[id]`** - Get content details (TMDB)
+- **GET `/api/embed/[type]/[id]`** - Generate embed URL (VidSrc)
+
+### Stream APIs
+
+- **GET `/api/stream`** - Extract direct stream URLs (VidSrc + local parsing)
+
+All endpoints run on the same application with no external backend required.
 
 ## Vercel Deployment
 
 ### Setup
 
-1. **Environment Variables** (set in Vercel dashboard):
+1. **Required Environment Variables** (set in Vercel dashboard):
    ```
    TMDB_API_KEY=your_tmdb_api_key
-   VIDSRC_BACKEND_URL=https://vidsrc-scraper-five.vercel.app
-   VIDSRC_API_KEY=your_vidsrc_api_key
    ```
 
 2. **Build Configuration**:
@@ -237,21 +263,30 @@ VideoPlayer renders
 
 3. **Function Configuration**:
    - Stream API endpoint uses Node.js runtime
-   - Max duration: 60 seconds for stream extraction
-   - Automatic caching disabled for API routes
+   - Max duration: 60 seconds for stream extraction timeout
+   - No external API backend calls required
+   - All stream extraction happens on-server
 
 ### Deployment Steps
 
 1. Connect repository to Vercel
-2. Configure environment variables in Vercel dashboard
+2. Set `TMDB_API_KEY` in Vercel dashboard
 3. Click "Deploy"
 4. Configure custom domain (streamhub.daybreakdev.com)
 
+### Key Features
+
+- **Zero External Backend**: All stream extraction integrated into the application
+- **Direct VidSrc Integration**: Parses VidSrc embed pages without proxy
+- **Fast Extraction**: Server-side extraction with caching
+- **Error Resilience**: Automatic fallback to iframe if extraction fails
+- **CORS Compatible**: Proper headers for cross-domain playback
+
 ### Monitoring
 
-- Stream extraction logs available in Vercel dashboard
-- API response times monitored automatically
-- Error tracking through Vercel analytics
+- Stream extraction logs in Vercel dashboard
+- Error tracking for failed extractions
+- Performance metrics for API response times
 
 ## Error Handling
 
