@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Loader2, AlertCircle, RefreshCw, Maximize } from 'lucide-react'
 
 interface VideoPlayerProps {
@@ -14,45 +14,11 @@ interface VideoPlayerProps {
   autonext?: boolean
 }
 
-// Build Vidsrc embed URL directly based on their API documentation
-// Using path-based format which is more reliable:
-// Movies: https://vidsrc-embed.ru/embed/movie/{tmdb_id}
-// TV Shows: https://vidsrc-embed.ru/embed/tv/{tmdb_id}
-// Episodes: https://vidsrc-embed.ru/embed/tv/{tmdb_id}/{season}-{episode}
-function buildEmbedUrl(
-  contentType: 'movie' | 'tv',
-  id: string | number,
-  options: {
-    season?: number
-    episode?: number
-    dsLang?: string
-    autoplay?: boolean
-    autonext?: boolean
-  } = {}
-): string {
-  const baseUrl = 'https://vidsrc-embed.ru/embed'
-  const { season, episode, dsLang, autoplay = true, autonext = false } = options
-  const tmdbId = String(id)
-
-  // Build optional query params
-  const params = new URLSearchParams()
-  if (dsLang) params.append('ds_lang', dsLang)
-  if (!autoplay) params.append('autoplay', '0')
-  if (autonext && contentType === 'tv' && season !== undefined && episode !== undefined) {
-    params.append('autonext', '1')
-  }
-  const queryString = params.toString() ? `?${params.toString()}` : ''
-
-  if (contentType === 'movie') {
-    // Movie: https://vidsrc-embed.ru/embed/movie/385687
-    return `${baseUrl}/movie/${tmdbId}${queryString}`
-  } else if (season !== undefined && episode !== undefined) {
-    // Episode: https://vidsrc-embed.ru/embed/tv/1399/1-1
-    return `${baseUrl}/tv/${tmdbId}/${season}-${episode}${queryString}`
-  } else {
-    // TV Show (first episode): https://vidsrc-embed.ru/embed/tv/1399
-    return `${baseUrl}/tv/${tmdbId}${queryString}`
-  }
+interface StreamData {
+  streamUrl: string | null
+  embedUrl: string
+  server?: string
+  quality?: string
 }
 
 export function VideoPlayer({
@@ -66,8 +32,72 @@ export function VideoPlayer({
   autonext = false
 }: VideoPlayerProps) {
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [streamData, setStreamData] = useState<StreamData | null>(null)
+  const [useDirectStream, setUseDirectStream] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Fetch stream data from API
+  useEffect(() => {
+    async function fetchStream() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const params = new URLSearchParams({
+          tmdbId: String(id),
+          type: contentType,
+        })
+
+        if (contentType === 'tv' && season !== undefined && episode !== undefined) {
+          params.append('season', String(season))
+          params.append('episode', String(episode))
+        }
+
+        console.log('[VideoPlayer] Fetching stream from API')
+        const response = await fetch(`/api/stream?${params}`)
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch stream')
+        }
+
+        if (data.streams && data.streams.length > 0) {
+          const stream = data.streams[0]
+          setStreamData({
+            streamUrl: stream.streamUrl,
+            embedUrl: data.embedUrl || stream.embedUrl,
+            server: stream.server,
+            quality: stream.quality
+          })
+
+          // Use direct stream if available and is .m3u8
+          if (stream.streamUrl && stream.streamUrl.includes('.m3u8')) {
+            console.log('[VideoPlayer] Using direct HLS stream')
+            setUseDirectStream(true)
+          } else {
+            console.log('[VideoPlayer] Using iframe embed')
+            setUseDirectStream(false)
+          }
+        } else if (data.embedUrl) {
+          setStreamData({
+            streamUrl: null,
+            embedUrl: data.embedUrl
+          })
+          setUseDirectStream(false)
+        }
+
+        setLoading(false)
+      } catch (err) {
+        console.error('[VideoPlayer] Error:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load stream')
+        setLoading(false)
+      }
+    }
+
+    fetchStream()
+  }, [id, contentType, season, episode])
 
   const handleFullscreen = async () => {
     if (!containerRef.current) return
@@ -83,19 +113,6 @@ export function VideoPlayer({
     }
   }
 
-  // Build embed URL directly - no API call needed
-  const embedUrl = useMemo(() => {
-    const url = buildEmbedUrl(contentType, id, {
-      season,
-      episode,
-      dsLang,
-      autoplay,
-      autonext
-    })
-    console.log('[v0] Vidsrc embed URL:', url)
-    return url
-  }, [contentType, id, season, episode, dsLang, autoplay, autonext])
-
   return (
     <div 
       ref={containerRef}
@@ -107,7 +124,7 @@ export function VideoPlayer({
           <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 pointer-events-none">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
-              <p className="text-slate-400">Loading player...</p>
+              <p className="text-slate-400">Loading stream...</p>
             </div>
           </div>
         )}
@@ -117,7 +134,7 @@ export function VideoPlayer({
             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
             <p className="text-red-400 font-semibold mb-2">Playback Error</p>
             <p className="text-slate-400 text-sm mb-6 text-center max-w-md px-4">
-              Failed to load video player
+              {error}
             </p>
             <button
               onClick={() => window.location.reload()}
@@ -129,29 +146,47 @@ export function VideoPlayer({
           </div>
         )}
 
-        <iframe
-          src={embedUrl}
-          allowFullScreen
-          className="w-full h-full border-0"
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-          title={title || 'Video Player'}
-          referrerPolicy="origin"
-          onLoad={() => setLoading(false)}
-          onError={() => {
-            setLoading(false)
-            setError(true)
-          }}
-        />
+        {!loading && !error && streamData && (
+          <>
+            {useDirectStream && streamData.streamUrl ? (
+              // Direct HLS video player
+              <video
+                ref={videoRef}
+                className="w-full h-full"
+                controls
+                autoPlay={autoplay}
+                playsInline
+                src={streamData.streamUrl}
+                onError={(e) => {
+                  console.error('[VideoPlayer] Video error, falling back to iframe')
+                  setUseDirectStream(false)
+                }}
+              />
+            ) : (
+              // Iframe embed fallback
+              <iframe
+                src={streamData.embedUrl}
+                allowFullScreen
+                className="w-full h-full border-0"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                title={title || 'Video Player'}
+                referrerPolicy="origin"
+              />
+            )}
+          </>
+        )}
 
         {/* Custom Fullscreen Button */}
-        <button
-          onClick={handleFullscreen}
-          className="absolute top-4 right-4 z-20 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg transition-all hover:scale-110"
-          title="Toggle fullscreen"
-          aria-label="Toggle fullscreen"
-        >
-          <Maximize className="w-5 h-5" />
-        </button>
+        {!loading && !error && (
+          <button
+            onClick={handleFullscreen}
+            className="absolute top-4 right-4 z-20 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg transition-all hover:scale-110"
+            title="Toggle fullscreen"
+            aria-label="Toggle fullscreen"
+          >
+            <Maximize className="w-5 h-5" />
+          </button>
+        )}
       </div>
     </div>
   )

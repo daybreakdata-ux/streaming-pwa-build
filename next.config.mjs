@@ -13,6 +13,11 @@ const nextConfig = {
       },
     ],
   },
+  // Vercel deployment configuration
+  env: {
+    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE || '',
+    NEXT_PUBLIC_DEPLOYMENT_URL: process.env.NEXT_PUBLIC_DEPLOYMENT_URL || 'https://streamhub.daybreakdev.com',
+  },
   async headers() {
     return [
       {
@@ -25,6 +30,24 @@ const nextConfig = {
           {
             key: 'Service-Worker-Allowed',
             value: '/',
+          },
+        ],
+      },
+      // Stream API headers
+      {
+        source: '/api/stream',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
           },
         ],
       },
