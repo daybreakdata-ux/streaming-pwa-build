@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Star, Calendar, Users, ChevronDown, Play, Tv } from 'lucide-react'
+import { ArrowLeft, Star, Calendar, Users, ChevronDown, Tv } from 'lucide-react'
 import { VideoPlayer } from '@/components/streaming/VideoPlayer'
 import { AutoplayCountdown } from '@/components/streaming/AutoplayCountdown'
 import { LoadingSpinner } from '@/components/streaming/LoadingSpinner'
@@ -43,7 +43,7 @@ function TVWatchContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const id = params.id as string
-  const { updateWatchItem, getWatchItem } = useWatchHistory()
+  const { updateWatchItem } = useWatchHistory()
   
   const [show, setShow] = useState<TVDetails | null>(null)
   const [loading, setLoading] = useState(true)
@@ -106,24 +106,12 @@ function TVWatchContent() {
   }
 
   const handleAutoplayNext = () => {
-    if (nextEpisode) {
-      setS  onVideoEnd={handleVideoEnd}
-          />
-        </div>
-      </div>
+    if (!nextEpisode) return
 
-      {/* Autoplay Countdown */}
-      {nextEpisode && (
-        <AutoplayCountdown
-          show={showAutoplay}
-          onCancel={handleCancelAutoplay}
-          onAutoplay={handleAutoplayNext}
-          title={`${show.title} - S${nextEpisode.season}E${nextEpisode.episode}`}
-          duration={10}
-        />
-      )}wAutoplay(false)
-      setNextEpisode(null)
-    }
+    setSeason(nextEpisode.season)
+    setEpisode(nextEpisode.episode)
+    setShowAutoplay(false)
+    setNextEpisode(null)
   }
 
   const handleCancelAutoplay = () => {
@@ -168,9 +156,21 @@ function TVWatchContent() {
             episode={episode}
             title={`${show.title} - S${season}E${episode}`}
             autoplay={true}
+            onVideoEnd={handleVideoEnd}
           />
         </div>
       </div>
+
+      {/* Autoplay Countdown */}
+      {nextEpisode && (
+        <AutoplayCountdown
+          show={showAutoplay}
+          onCancel={handleCancelAutoplay}
+          onAutoplay={handleAutoplayNext}
+          title={`${show.title} - S${nextEpisode.season}E${nextEpisode.episode}`}
+          duration={10}
+        />
+      )}
 
       {/* Show Info */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
