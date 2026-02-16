@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Search, Menu, X, Play, Film, Tv } from 'lucide-react'
+import { Search, Menu, X, Play, Film, Tv, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SearchBar } from './SearchBar'
 
@@ -11,7 +11,12 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const pathname = usePathname()
+  const [pathname, setPathname] = useState<string | null>(null)
+  const actualPathname = usePathname()
+
+  useEffect(() => {
+    setPathname(actualPathname)
+  }, [actualPathname])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +30,7 @@ export function Header() {
     { href: '/', label: 'Home', icon: Play },
     { href: '/movies', label: 'Movies', icon: Film },
     { href: '/tv', label: 'TV Shows', icon: Tv },
+    { href: '/categories', label: 'Categories', icon: Layers },
   ]
 
   return (
@@ -49,7 +55,7 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" suppressHydrationWarning>
             {navLinks.map((link) => {
               const Icon = link.icon
               return (
@@ -118,7 +124,7 @@ export function Header() {
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-slate-950/98 backdrop-blur-md border-t border-white/10">
-          <nav className="px-4 py-4 space-y-1">
+          <nav className="px-4 py-4 space-y-1" suppressHydrationWarning>
             {navLinks.map((link) => {
               const Icon = link.icon
               return (

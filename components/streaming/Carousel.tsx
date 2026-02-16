@@ -82,7 +82,7 @@ export function Carousel({ title, items, size = 'md' }: CarouselProps) {
         >
           {items.map((item, index) => (
             <ContentCard
-              key={`${item.type}-${item.id}`}
+              key={`${title}-${item.type}-${item.id}-${index}`}
               item={item}
               priority={index < 6}
               size={size}

@@ -6,7 +6,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Star, Calendar, Users, ChevronDown, Play, Tv } from 'lucide-react'
 import { VideoPlayer } from '@/components/streaming/VideoPlayer'
+import { AutoplayCountdown } from '@/components/streaming/AutoplayCountdown'
 import { LoadingSpinner } from '@/components/streaming/LoadingSpinner'
+import { useWatchHistory } from '@/hooks/use-watch-history'
 import { cn } from '@/lib/utils'
 import Loading from './loading'
 
@@ -41,12 +43,15 @@ function TVWatchContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const id = params.id as string
+  const { updateWatchItem, getWatchItem } = useWatchHistory()
   
   const [show, setShow] = useState<TVDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [season, setSeason] = useState(parseInt(searchParams.get('season') || '1'))
   const [episode, setEpisode] = useState(parseInt(searchParams.get('episode') || '1'))
   const [showSeasonDropdown, setShowSeasonDropdown] = useState(false)
+  const [showAutoplay, setShowAutoplay] = useState(false)
+  const [nextEpisode, setNextEpisode] = useState<{ season: number; episode: number } | null>(null)
 
   useEffect(() => {
     async function fetchDetails() {
@@ -64,6 +69,67 @@ function TVWatchContent() {
     }
     fetchDetails()
   }, [id])
+
+  // Update watch history when episode changes
+  useEffect(() => {
+    if (show) {
+      updateWatchItem({
+        id: parseInt(id),
+        title: show.title,
+        type: 'tv',
+        posterUrl: show.posterUrl,
+        currentTime: 0,
+        duration: 0,
+        season,
+        episode,
+        totalSeasons: show.numberOfSeasons,
+        totalEpisodes: show.numberOfEpisodes,
+        lastWatched: Date.now()
+      })
+    }
+  }, [id, show, season, episode, updateWatchItem])
+
+  const handleVideoEnd = () => {
+    const currentSeason = show?.seasons?.find(s => s.season_number === season)
+    const currentSeasonEpisodes = currentSeason?.episode_count || 0
+
+    // Check if there's a next episode
+    if (episode < currentSeasonEpisodes) {
+      // Next episode in same season
+      setNextEpisode({ season, episode: episode + 1 })
+      setShowAutoplay(true)
+    } else if (season < (show?.numberOfSeasons || 0)) {
+      // Next season, first episode
+      setNextEpisode({ season: season + 1, episode: 1 })
+      setShowAutoplay(true)
+    }
+  }
+
+  const handleAutoplayNext = () => {
+    if (nextEpisode) {
+      setS  onVideoEnd={handleVideoEnd}
+          />
+        </div>
+      </div>
+
+      {/* Autoplay Countdown */}
+      {nextEpisode && (
+        <AutoplayCountdown
+          show={showAutoplay}
+          onCancel={handleCancelAutoplay}
+          onAutoplay={handleAutoplayNext}
+          title={`${show.title} - S${nextEpisode.season}E${nextEpisode.episode}`}
+          duration={10}
+        />
+      )}wAutoplay(false)
+      setNextEpisode(null)
+    }
+  }
+
+  const handleCancelAutoplay = () => {
+    setShowAutoplay(false)
+    setNextEpisode(null)
+  }
 
   if (loading) {
     return (

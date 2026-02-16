@@ -1,5 +1,6 @@
 import { Hero } from '@/components/streaming/Hero'
 import { Carousel } from '@/components/streaming/Carousel'
+import { KeepWatchingCarousel } from '@/components/streaming/KeepWatchingCarousel'
 import type { Title } from '@/lib/types'
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY
@@ -9,19 +10,38 @@ async function fetchFromTMDB(endpoint: string): Promise<Title[]> {
   if (!TMDB_API_KEY) return []
   
   try {
-    const url = new URL(`${TMDB_BASE_URL}${endpoint}`)
-    url.searchParams.append('api_key', TMDB_API_KEY)
-    url.searchParams.append('page', '1')
+    // Fetch 3 pages to get 3x as many items (60 instead of 20)
+    const pages = await Promise.all(
+      [1, 2, 3].map(async (page) => {
+        const url = new URL(`${TMDB_BASE_URL}${endpoint}`)
+        url.searchParams.append('api_key', TMDB_API_KEY)
+        url.searchParams.append('page', page.toString())
 
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 3600 }
+        const response = await fetch(url.toString(), {
+          next: { revalidate: 3600 }
+        })
+
+        if (!response.ok) return []
+
+        const data = await response.json()
+        return data.results || []
+      })
+    )
+
+    const allResults = pages.flat()
+
+    // Deduplicate by ID
+    const seenIds = new Set<number>()
+    const deduplicatedResults = allResults.filter((item: Record<string, unknown>) => {
+      const id = item.id as number
+      if (seenIds.has(id)) {
+        return false
+      }
+      seenIds.add(id)
+      return true
     })
 
-    if (!response.ok) return []
-
-    const data = await response.json()
-
-    return data.results.map((item: Record<string, unknown>) => ({
+    return deduplicatedResults.map((item: Record<string, unknown>) => ({
       id: item.id,
       tmdbId: item.id,
       title: item.title || item.name,
@@ -74,6 +94,8 @@ export default async function HomePage() {
       {/* Content Carousels */}
       {hasContent ? (
         <div className={trending.length > 0 ? '-mt-20 relative z-10 pb-16 space-y-2' : 'pt-20 pb-16 space-y-2'}>
+          <KeepWatchingCarousel />
+          
           {trending.length > 0 && (
             <Carousel title="Trending Now" items={trending} size="lg" />
           )}

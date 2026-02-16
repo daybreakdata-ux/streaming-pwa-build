@@ -12,6 +12,8 @@ interface VideoPlayerProps {
   dsLang?: string
   autoplay?: boolean
   autonext?: boolean
+  onVideoEnd?: () => void
+  onTimeUpdate?: (currentTime: number, duration: number) => void
 }
 
 interface StreamData {
@@ -29,7 +31,9 @@ export function VideoPlayer({
   title,
   dsLang = 'en',
   autoplay = true,
-  autonext = false
+  autonext = false,
+  onVideoEnd,
+  onTimeUpdate
 }: VideoPlayerProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -160,6 +164,17 @@ export function VideoPlayer({
                 onError={(e) => {
                   console.error('[VideoPlayer] Video error, falling back to iframe')
                   setUseDirectStream(false)
+                }}
+                onEnded={() => {
+                  if (onVideoEnd) {
+                    onVideoEnd()
+                  }
+                }}
+                onTimeUpdate={(e) => {
+                  const target = e.target as HTMLVideoElement
+                  if (onTimeUpdate) {
+                    onTimeUpdate(target.currentTime, target.duration)
+                  }
                 }}
               />
             ) : (

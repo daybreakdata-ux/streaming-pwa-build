@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Star, Clock, Calendar, Users } from 'lucide-react'
 import { VideoPlayer } from '@/components/streaming/VideoPlayer'
+import { MoviePlayerTracker } from '@/components/streaming/MoviePlayerTracker'
 import { Carousel } from '@/components/streaming/Carousel'
 import { LoadingSpinner } from '@/components/streaming/LoadingSpinner'
 
@@ -102,6 +103,8 @@ export default async function MovieWatchPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="min-h-screen bg-slate-950 pt-16">
+      <MoviePlayerTracker id={id} title={movie.title} posterUrl={movie.posterUrl} />
+      
       {/* Video Player Section */}
       <div className="bg-black">
         <div className="max-w-7xl mx-auto">
