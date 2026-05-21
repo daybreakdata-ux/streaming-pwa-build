@@ -8,7 +8,7 @@ The streaming backend is fully self-contained within the application:
 
 - **Next.js API Routes**: Handle all stream extraction logic (`/api/stream`)
 - **TMDB API**: Provides content metadata and IDs
-- **VidSrc Direct Integration**: Fetches and parses embedded stream URLs directly from vidsrc.cc and vidsrc.xyz
+- **VidSrc Direct Integration**: Fetches and parses embedded stream URLs directly from vidsrc-embed.ru
 - **Stream Extraction**: Runs on the server-side, converting embedded iframes into direct playable streams
 
 ## Deployment
@@ -60,14 +60,14 @@ curl "https://streamhub.daybreakdev.com/api/stream?tmdbId=1399&type=tv&season=1&
 ```json
 {
   "success": true,
-  "embedUrl": "https://vidsrc.xyz/embed/movie/550",
+  "embedUrl": "https://vidsrc-embed.ru/embed/movie/550",
   "streams": [
     {
       "name": "movie 550",
       "streamUrl": "https://example.com/stream.m3u8",
       "server": "hls",
       "quality": "auto",
-      "referer": "https://vidsrc.xyz"
+      "referer": "https://vidsrc-embed.ru"
     }
   ]
 }
@@ -158,7 +158,7 @@ The API logs detailed information:
 
 Look for console output like:
 ```
-[Stream Extractor] Fetching embed page: https://vidsrc.xyz/embed/movie/550
+[Stream Extractor] Fetching embed page: https://vidsrc-embed.ru/embed/movie/550
 [Stream Extractor] Found 3 potential sources
 [Stream API] Found streams: { total: 3, hls: 1, direct: 2 }
 ```
@@ -197,8 +197,8 @@ User Request (VideoPlayer Component)
     ↓
 ┌──────────────────────────────────────────┐
 │ Build VidSrc Embed URL from TMDB ID      │
-│ - Movies: vidsrc.cc/embed/movie/{id}     │
-│ - TV: vidsrc.cc/embed/tv/{id}/{s}/{e}    │
+│ - Movies: vidsrc-embed.ru/embed/movie/{id}     │
+│ - TV: vidsrc-embed.ru/embed/tv/{id}/{s}/{e}    │
 └──────────────────────────────────────────┘
     ↓
 ┌──────────────────────────────────────────┐

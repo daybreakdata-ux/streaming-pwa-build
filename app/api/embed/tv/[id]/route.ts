@@ -18,7 +18,7 @@ export async function GET(
     const isImdb = /^tt\d{7,9}$/.test(id)
     const idParam = isImdb ? `imdb=${id}` : `tmdb=${id}`
 
-    let embedUrl = `https://vidsrc.cc/v2/embed/tv?${idParam}`
+    let embedUrl = `https://vidsrc-embed.ru/v2/embed/tv?${idParam}`
 
     if (season && episode) {
       embedUrl += `&season=${season}&episode=${episode}`

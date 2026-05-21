@@ -21,7 +21,7 @@ async function extractStreamFromEmbed(embedUrl: string): Promise<StreamSource[]>
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Referer': 'https://vidsrc.xyz',
+        'Referer': 'https://vidsrc-embed.ru',
       }
     })
 
@@ -117,7 +117,7 @@ async function resolveIframeChain(iframeUrl: string, depth: number = 0): Promise
     const response = await fetch(iframeUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://vidsrc.xyz',
+        'Referer': 'https://vidsrc-embed.ru',
       },
       redirect: 'follow'
     })
@@ -197,8 +197,8 @@ export async function GET(request: NextRequest) {
 
     // Build embed URL
     const embedUrl = type === 'movie'
-      ? `https://vidsrc.xyz/embed/movie/${tmdbId}`
-      : `https://vidsrc.xyz/embed/tv/${tmdbId}/${season}/${episode}`
+      ? `https://vidsrc-embed.ru/embed/movie/${tmdbId}`
+      : `https://vidsrc-embed.ru/embed/tv/${tmdbId}/${season}/${episode}`
 
     console.log('[Stream API] Processing:', { tmdbId, type, season, episode })
 
@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
           name: `${type} ${tmdbId}`,
           streamUrl: null,
           embedUrl: embedUrl,
-          referer: 'https://vidsrc.xyz'
+          referer: 'https://vidsrc-embed.ru'
         }]
       }, { headers: corsHeaders })
     }
@@ -252,7 +252,7 @@ export async function GET(request: NextRequest) {
         streamUrl: s.url,
         server: s.server,
         quality: s.quality,
-        referer: 'https://vidsrc.xyz'
+        referer: 'https://vidsrc-embed.ru'
       }))
     }, { headers: corsHeaders })
 

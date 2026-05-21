@@ -15,7 +15,7 @@ export async function GET(
     const isImdb = /^tt\d{7,9}$/.test(id)
     const idParam = isImdb ? `imdb=${id}` : `tmdb=${id}`
 
-    let embedUrl = `https://vidsrc.cc/v2/embed/movie?${idParam}`
+    let embedUrl = `https://vidsrc-embed.ru/v2/embed/movie?${idParam}`
 
     const dsLang = searchParams.get('ds_lang') || 'en'
     const autoplay = searchParams.get('autoplay') ?? '1'
